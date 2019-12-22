@@ -14,7 +14,11 @@
 # ==============================================================================
 
 import os
+import datetime
 import logging
+
+import gym
+from gym import wrappers, logger
 
 import tensorflow as tf
 
@@ -44,7 +48,8 @@ def main():
         likelihood_ratio_clipping=0.2, discount=0.99, estimate_terminal=False,
         # Critic
         critic_network='auto',
-        critic_optimizer=dict(optimizer='adam', multi_step=10, learning_rate=1e-3),
+        critic_optimizer=dict(
+            optimizer='adam', multi_step=10, learning_rate=1e-3),
         # Preprocessing
         preprocessing=None,
         # Exploration
@@ -58,11 +63,51 @@ def main():
 
     # Initialize the runner
     runner = Runner(agent=agent, environment=environment)
+    # Note this didnt work...
+    #save_best_agent=os.path.join(os.getcwd(), 'best_cart_pole_ppo')
 
     # Start the runner
-    runner.run(num_episodes=300)
+    runner.run(num_episodes=10)
+
+    agent.save(
+        directory=os.path.join(os.getcwd(), 'best_cart_pole_ppo'),
+        filename='best-model',
+        append_timestep=False
+    )
+
+    # Evaluating - according to https://tensorforce.readthedocs.io/en/latest/basics/getting-started.html#training-and-evaluation
+    # NOTE: this will not work together with save_best_agent
+    #runner.run(num_episodes=10, evaluation=True)
+
+    runner.close()
+
+
+def run_from_agent():
+    # TODO: use the proper
+    agent_path = os.path.join(
+        os.getcwd(), 'best_cart_pole_ppo', 'best-model.json')
+    print(f"Evaluating agent: {agent_path}")
+
+    env_id = 'CartPole-v1'
+    # TODO: this require unique folder
+    dt_str = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+    outdir = f'/tmp/random-agent-results-{dt_str}'
+    # # from gym:example/agents/ramdom_agents.py
+    # gym_env = gym.make(env_id)
+    # gym_env = wrappers.Monitor(gym_env, directory=outdir, force=True)
+    # environment = Environment.create(gym_env)
+
+    # Create an OpenAI-Gym environment
+    environment = Environment.create(environment='gym', level=env_id,
+                                     visualize=True, visualize_directory=outdir)
+
+    # Now create the new agent
+    runner = Runner(agent=agent_path, environment=environment)
+
+    runner.run(num_episodes=100, evaluation=True)
     runner.close()
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    run_from_agent()
