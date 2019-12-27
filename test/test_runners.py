@@ -76,7 +76,7 @@ class TestRunners(UnittestBase, unittest.TestCase):
             self.is_callback2 = True
 
         runner.run(
-            num_episodes=1, callback=[callback1, callback2],
+            num_episodes=4, callback=[callback1, callback2],
             callback_timestep_frequency=callback_timestep_frequency, use_tqdm=False
         )
         runner.close()
@@ -148,7 +148,7 @@ class TestRunners(UnittestBase, unittest.TestCase):
             self.assertEqual(r.episode_timestep[parallel] % callback_timestep_frequency, 0)
 
         runner.run(
-            num_episodes=1, callback=callback,
+            num_episodes=4, callback=callback,
             callback_timestep_frequency=callback_timestep_frequency, use_tqdm=False
         )
 
@@ -162,7 +162,7 @@ class TestRunners(UnittestBase, unittest.TestCase):
             self.is_callback2 = True
 
         runner.run(
-            num_episodes=1, callback=[callback1, callback2],
+            num_episodes=4, callback=[callback1, callback2],
             callback_timestep_frequency=callback_timestep_frequency, use_tqdm=False
         )
         runner.close()
