@@ -2,6 +2,7 @@
 *.pyc
 *.vscode
 .DS_Store
+.mypy_cache
 CONTRIBUTING.html
 PROJECTS.html
 README.html
