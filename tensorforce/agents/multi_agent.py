@@ -129,6 +129,8 @@ class MultiAgent(Agent):
         """
 
         assert len(states) == self.num_agents, (len(states), self.num_agents)
+        # If your multi-agent have muti-wrapped states
+        assert not isinstance(states[0], list), "You may have double wrapped"
         assert query is None, "Cannot return action query yet"
 
         return [
@@ -137,24 +139,26 @@ class MultiAgent(Agent):
             if not self.terminal[agent_idx]
         ]
 
-    def observe(self, rewards, terminals, parallel=0, query=None,
+    def observe(self, reward, terminal, parallel=0, query=None,
                 **kwargs):
-        assert len(rewards) == self.num_agents, (len(rewards), self.num_agents)
-        assert len(terminals) == self.num_agents, \
-            (len(terminals), self.num_agents)
+        assert isinstance(reward, list)
+        assert isinstance(terminal, list)
+        assert len(reward) == self.num_agents, (len(reward), self.num_agents)
+        assert len(terminal) == self.num_agents, \
+            (len(terminal), self.num_agents)
         if query is not None:
             raise NotImplementedError()
         if parallel:
             raise NotImplementedError()
 
-        update_performed = [False for _ in self.num_agents]
+        update_performed = [False for _ in range(self.num_agents)]
         for agent_idx, a in enumerate(self.agents):
-            if not self.terminals[agent_idx]:
+            if not self.terminal[agent_idx]:
                 update_performed[agent_idx] = a.observe(
-                    rewards[agent_idx], terminals[agent_idx], **kwargs)
+                    reward[agent_idx], terminal[agent_idx], **kwargs)
 
-            if terminals[agent_idx]:
-                self.terminals[agent_idx] = True
+            if terminal[agent_idx]:
+                self.terminal[agent_idx] = True
         return any(update_performed)
 
     def save(self, directory=None, filename=None, append_timestep=True):

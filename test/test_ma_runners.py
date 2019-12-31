@@ -38,6 +38,10 @@ class MultiAgentEnvironment(UnittestEnvironment):
         super(MultiAgentEnvironment, self).__init__(
             states, actions, min_timesteps)
         self.num_agents = num_agents
+        self.random_states = self.__class__.random_states_function(
+            states_spec=self.states_spec, actions_spec=self.actions_spec,
+            num_agents=num_agents
+        )
 
     def states(self):
         return [self.states_spec] * self.num_agents
@@ -45,16 +49,42 @@ class MultiAgentEnvironment(UnittestEnvironment):
     def actions(self):
         return [self.actions_spec] * self.num_agents
 
+    @classmethod
+    def random_states_function(cls, states_spec, actions_spec, num_agents=None):
+        parent_state_func = super().random_states_function(states_spec,
+                                                           actions_spec)
+        return lambda: [parent_state_func()] * num_agents
+
+    @classmethod
+    def is_valid_actions_function(cls, actions_spec):
+        parent_valid_func = super().is_valid_actions_function(actions_spec)
+        return lambda actions, states: (
+            isinstance(actions, list)
+            and isinstance(states, list)
+            and len(actions) == len(states)
+            and all([
+                parent_valid_func(a, s)
+                for a, s in zip(actions, states)
+            ])
+        )
+
     def reset(self):
         _states = super(MultiAgentEnvironment, self).reset()
-        return [_states] * self.num_agents
+        # _states should already multiplied by random function above
+        # TODO: we should tidying this up to ensuare all states is at one place
+        assert isinstance(_states, list)
+        return _states
 
     def execute(self, actions):
         _states, terminal, reward = super(
             MultiAgentEnvironment, self).execute(actions)
         c = self.num_agents
-        # XXX: is terminal multiple?
-        return [self._states]*c, [terminal]*c, [reward]*c
+        # _states should already multiplied by random function above
+        # TODO: we should tidying this up to ensuare all states is at one place
+        assert isinstance(_states, list)
+        assert not isinstance(terminal, list)
+        assert not isinstance(reward, list)
+        return self._states, [terminal]*c, [reward]*c
 
 
 class TestMultiAgentRunner(UnittestBase, unittest.TestCase):

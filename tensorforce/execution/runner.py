@@ -57,7 +57,8 @@ class Runner(object):
         if evaluation_environment is None:
             self.evaluation_environment = None
         else:
-            self.is_eval_environment_external = isinstance(evaluation_environment, Environment)
+            self.is_eval_environment_external = isinstance(
+                evaluation_environment, Environment)
             self.evaluation_environment = Environment.create(
                 environment=evaluation_environment, max_episode_timesteps=max_episode_timesteps
             )
@@ -157,7 +158,8 @@ class Runner(object):
             if hasattr(self, 'tqdm'):
                 self.tqdm.close()
 
-            assert self.num_episodes != float('inf') or self.num_timesteps != float('inf')
+            assert self.num_episodes != float(
+                'inf') or self.num_timesteps != float('inf')
             inner_callback = self.callback
 
             if self.num_episodes != float('inf'):
@@ -176,10 +178,14 @@ class Runner(object):
                 self.tqdm_last_update = self.episodes
 
                 def tqdm_callback(runner):
-                    mean_reward = float(np.mean(runner.episode_rewards[-mean_horizon:]))
-                    mean_ts_per_ep = int(np.mean(runner.episode_timesteps[-mean_horizon:]))
-                    mean_sec_per_ep = float(np.mean(runner.episode_seconds[-mean_horizon:]))
-                    mean_agent_sec = float(np.mean(runner.episode_agent_seconds[-mean_horizon:]))
+                    mean_reward = float(
+                        np.mean(runner.episode_rewards[-mean_horizon:]))
+                    mean_ts_per_ep = int(
+                        np.mean(runner.episode_timesteps[-mean_horizon:]))
+                    mean_sec_per_ep = float(
+                        np.mean(runner.episode_seconds[-mean_horizon:]))
+                    mean_agent_sec = float(
+                        np.mean(runner.episode_agent_seconds[-mean_horizon:]))
                     mean_ms_per_ts = mean_sec_per_ep * 1000.0 / mean_ts_per_ep
                     mean_rel_agent = mean_agent_sec * 100.0 / mean_sec_per_ep
                     runner.tqdm.postfix[0] = mean_reward
@@ -187,7 +193,8 @@ class Runner(object):
                     runner.tqdm.postfix[2] = mean_sec_per_ep
                     runner.tqdm.postfix[3] = mean_ms_per_ts
                     runner.tqdm.postfix[4] = mean_rel_agent
-                    runner.tqdm.update(n=(runner.episodes - runner.tqdm_last_update))
+                    runner.tqdm.update(
+                        n=(runner.episodes - runner.tqdm_last_update))
                     runner.tqdm_last_update = runner.episodes
                     return inner_callback(runner)
 
@@ -205,7 +212,8 @@ class Runner(object):
                     # num_timesteps = min(num_mean_reward, runner.episode_timestep)
                     # mean_reward = sum_timesteps_reward / num_episodes
                     runner.tqdm.set_postfix(mean_reward='n/a')
-                    runner.tqdm.update(n=(runner.timesteps - runner.tqdm_last_update))
+                    runner.tqdm.update(
+                        n=(runner.timesteps - runner.tqdm_last_update))
                     runner.tqdm_last_update = runner.timesteps
                     return inner_callback(runner)
 
@@ -260,7 +268,8 @@ class Runner(object):
             elif self.evaluation_frequency == 'update':
                 is_evaluation = self.episode_updated
             else:
-                is_evaluation = (self.episodes % self.evaluation_frequency == 0)
+                is_evaluation = (self.episodes %
+                                 self.evaluation_frequency == 0)
             if is_evaluation:
                 if self.evaluation_environment is None:
                     environment = self.environment
@@ -279,7 +288,8 @@ class Runner(object):
                     self.evaluation_rewards.append(self.episode_reward)
                     self.evaluation_timesteps.append(self.episode_timestep)
                     self.evaluation_seconds.append(self.episode_second)
-                    self.evaluation_agent_seconds.append(self.episode_agent_second)
+                    self.evaluation_agent_seconds.append(
+                        self.episode_agent_second)
 
                 # Evaluation callback
                 if self.save_best_agent is not None:
@@ -341,15 +351,26 @@ class Runner(object):
             self.episode_agent_second += time.time() - agent_start
             self.episode_timestep += 1
             # Execute actions in environment (optional repeated execution)
-            reward = 0.0
+            reward = None
             for _ in range(self.num_repeat_actions):
-                states, terminal, step_reward = environment.execute(actions=actions)
+                states, terminal, step_reward = environment.execute(
+                    actions=actions)
                 if isinstance(terminal, bool):
-                    terminal = int(terminal)
-                reward += step_reward
-                if terminal > 0:
+                    terminal_summary = int(terminal)
+                elif isinstance(terminal, list):
+                    terminal_summary = min(terminal)
+                if reward is None:
+                    reward = step_reward
+                else:
+                    if isinstance(step_reward, list):
+                        # TODO: find a better way to descrive episode reward
+                        self.episode_reward += max(step_reward)
+                        reward = [a+b for a, b in zip(reward, step_reward)]
+                    else:
+                        reward = step_reward
+                        self.episode_reward += reward
+                if terminal_summary > 0:
                     break
-            self.episode_reward += reward
 
             # Observe unless evaluation
             if evaluation:
@@ -363,7 +384,7 @@ class Runner(object):
                 self.episode_updated = self.episode_updated or updated
 
             # Episode termination check
-            if terminal > 0:
+            if terminal_summary > 0:
                 break
 
             # No callbacks for evaluation
