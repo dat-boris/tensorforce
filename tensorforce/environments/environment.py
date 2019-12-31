@@ -258,5 +258,8 @@ class EnvironmentWrapper(Environment):
             else min(terminal) == 0
         )
         if not is_terminal and self.timestep >= self._max_episode_timesteps:
-            terminal = 2
+            terminal = (
+                2 if not isinstance(terminal, list)
+                else [2 for _ in terminal]
+            )
         return states, terminal, reward

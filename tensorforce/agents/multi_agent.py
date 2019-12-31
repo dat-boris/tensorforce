@@ -129,8 +129,6 @@ class MultiAgent(Agent):
         """
 
         assert len(states) == self.num_agents, (len(states), self.num_agents)
-        # If your multi-agent have muti-wrapped states
-        assert not isinstance(states[0], list), "You may have double wrapped"
         assert query is None, "Cannot return action query yet"
 
         return [

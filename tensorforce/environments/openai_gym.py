@@ -302,8 +302,18 @@ class OpenAIGym(Environment):
                         specs['{}-{}'.format(space_name, name)] = spec
             return specs
 
+        elif isinstance(space, list):
+            # This could be a multi-gym environment, let's decouple the space
+            # TODO: do we want to keep this as a list?
+            specs = []
+            for space_obj in space:
+                spec = OpenAIGym.specs_from_gym_space(
+                    space=space_obj, ignore_value_bounds=ignore_value_bounds
+                )
+                specs.append(spec)
+            return specs
         else:
-            raise TensorforceError('Unknown Gym space.')
+            raise TensorforceError('Unknown Gym space: {}'.format(space))
 
     @staticmethod
     def flatten_state(state, states_spec):

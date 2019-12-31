@@ -105,7 +105,7 @@ class TestMultiAgentRunner(UnittestBase, unittest.TestCase):
 
     require_observe = True
     # TODO: just map to one agent for now to ensure this runs
-    num_agents = 1
+    num_agents = 4
     # TODO: debug between correct / wrong version
     use_multi = True
 
