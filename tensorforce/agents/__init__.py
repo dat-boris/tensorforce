@@ -14,6 +14,7 @@
 # ==============================================================================
 
 from tensorforce.agents.agent import Agent
+from tensorforce.agents.multi_agent import MultiAgent
 
 from tensorforce.agents.constant import ConstantAgent
 from tensorforce.agents.random import RandomAgent

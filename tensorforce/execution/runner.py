@@ -65,7 +65,11 @@ class Runner(object):
             assert self.evaluation_environment.actions() == self.environment.actions()
 
         self.is_agent_external = isinstance(agent, Agent)
-        self.agent = Agent.create(agent=agent, environment=self.environment)
+        # Only wrap agent if it is not already an instance of tensorforce.Agent
+        self.agent = (
+            Agent.create(agent=agent, environment=self.environment)
+            if not self.is_agent_external else agent
+        )
         self.save_best_agent = save_best_agent
 
         self.episode_rewards = list()

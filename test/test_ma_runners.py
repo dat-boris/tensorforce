@@ -18,8 +18,8 @@ import time
 import unittest
 from copy import deepcopy
 
-from tensorforce.agents import Agent
-from tensorforce.execution import ParallelRunner, Runner
+from tensorforce.agents import Agent, MultiAgent
+from tensorforce.execution import Runner
 from tensorforce.core.layers import Layer
 from tensorforce.environments import Environment
 
@@ -32,92 +32,96 @@ class MultiAgentEnvironment(UnittestEnvironment):
 
     The multi-agent return multiple states and actions spaces.
     """
-    agent_count = 4
+    num_agents: int
 
-    # def __init__(self, states, actions, min_timesteps):
-    #     pass
+    def __init__(self, states, actions, min_timesteps, num_agents):
+        super(MultiAgentEnvironment, self).__init__(
+            states, actions, min_timesteps)
+        self.num_agents = num_agents
 
     def states(self):
-        # XXX: do we want to mock multiple of this
-        return self.states_spec
+        return [self.states_spec] * self.num_agents
 
     def actions(self):
-        return self.actions_spec
-
-    # @classmethod
-    # def random_states_function(cls, states_spec, actions_spec=None):
-    # def random_state_function(cls, state_spec):
-    #     return random_state
-
-    # @classmethod
-    # def random_mask(cls, action_spec):
-    #     return mask
-
-    # @classmethod
-    # def is_valid_actions_function(cls, action_spec):
-    # def is_valid_action_function(cls, action_spec):
-    #     return is_valid
+        return [self.actions_spec] * self.num_agents
 
     def reset(self):
-        _states = super(MultiAgentEnvironmnet, self).reset()
-        return [states] * self.agent_count
+        _states = super(MultiAgentEnvironment, self).reset()
+        return [_states] * self.num_agents
 
     def execute(self, actions):
         _states, terminal, reward = super(
-            MultiAgentEnvironmnet, self).execute(actions)
-        count = self.agent_count
+            MultiAgentEnvironment, self).execute(actions)
+        c = self.num_agents
         # XXX: is terminal multiple?
-        return [self._states]*count, [terminal]*count, [reward]*count
+        return [self._states]*c, [terminal]*c, [reward]*c
+
 
 class TestMultiAgentRunner(UnittestBase, unittest.TestCase):
+    """Test for MultiAgent Runner
+
+    This is a test runner which runs a multiple version of agents, setting up
+    to ensure that we can get up and running with multiple agents.
+
+    A multiple agent environment will return an environment for each state.
+
+    In tensorforce, there are 3 main entities:
+
+    * Environment - same as before
+    * MultiAgent - reads environment and apply specific mask to agent
+    * MultiRunner - apply runners to ensure that we can synchronize the running
+
+    """
 
     require_observe = True
-    num_agents = 4
+    # TODO: just map to one agent for now to ensure this runs
+    num_agents = 1
+    # TODO: debug between correct / wrong version
+    use_multi = True
 
     def test_multi_agent_runner(self):
         self.start_tests(name='multi-agent-runner')
 
         Layer.layers = None
 
-        # Prepare multiple agents
-        # XXX: pass in a mock environment that is multi-agent
-        # agent1, environment = self.prepare(
-        #     update=dict(unit='episodes', batch_size=1), parallel_interactions=2
-        # )
-        # # XXX: can we just copy the agent?
-        # agent2 = copy.deepcopy(agent1)
-
-        # Let's not do this!  Let's filter out individually
-        # NOTE: this is simplified from self.prepare from unittest_base
+        # Mock up multienvironment process
         states = deepcopy(self.__class__.states)
         actions = deepcopy(self.__class__.actions)
         min_timesteps = self.__class__.min_timesteps
-        # environment = MultiAgentEnvironment(
-        #     states=states, actions=actions, min_timesteps=min_timesteps,
-        #     num_agents=self.__class__.num_agents
-        # )
+        # Note that this is just a normal environemnt, but return multiple
+        # states in return. (See mock above)
+        if self.use_multi:
+            environment = MultiAgentEnvironment(
+                states=states, actions=actions, min_timesteps=min_timesteps,
+                num_agents=self.__class__.num_agents
+            )
+            self.assertEqual(len(environment.states()), self.num_agents)
+            self.assertEqual(len(environment.actions()), self.num_agents)
+        else:
+            environment = UnittestEnvironment(
+                states=states, actions=actions, min_timesteps=min_timesteps,
+            )
+        environment = Environment.create(
+            environment=environment, max_episode_timesteps=5)
 
-        environment = UnittestEnvironment(
-            states=states, actions=actions, min_timesteps=min_timesteps,
-        )
-        environment = Environment.create(environment=environment, max_episode_timesteps=5)
-
-        agent = deepcopy(self.__class__.agent)
+        # Now Mock up the multi-agent environment
         config = dict(api_functions=['reset', 'act', 'observe'])
-        # TODO: 1. do I acatually want a multi-agent runner instead?
-        # I want to enmsure that
-        agent = Agent.create(agent=agent, environment=environment, config=config)
-
+        # TODO: provide the mapping for multiagent
+        # This allow running MultipleAgent as one agent, that would be cooL!
+        if self.use_multi:
+            agent = MultiAgent.create(
+                agents=[deepcopy(self.__class__.agent)
+                        for _ in range(self.__class__.num_agents)],
+                environment=environment, config=config)
+        else:
+            agent = Agent.create(agent=self.__class__.agent,
+                                 environment=environment, config=config)
         runner = Runner(agent=agent, environment=environment)
 
         # XXX: ensure that we run the agent, with each agent should:
-        # 1. be trained to the environemnt and see a wrap for the agent
+        # 1. be trained to the environment and see a wrap for the agent
         # 2. ensure that it can be seen to train for the setup of the place
-        # runner.run(
-        #     num_episodes=1, callback=callback,
-        #     callback_timestep_frequency=callback_timestep_frequency, use_tqdm=False
-        # )
-
+        #
         # XXX: to do I think we dont need to setup the setup
         # self.is_callback1 = False
         # self.is_callback2 = False
