@@ -132,9 +132,11 @@ class MultiAgent(Agent):
         assert query is None, "Cannot return action query yet"
 
         return [
-            a.act(states[agent_idx], *args, **kwargs)
+            a.act(states=states[agent_idx], *args, **kwargs)
             for agent_idx, a in enumerate(self.agents)
-            if not self.terminal[agent_idx]
+            # TODO: what if agent is terminated?
+            # We cannot simply not reply with an action
+            #if not self.terminal[agent_idx]
         ]
 
     def observe(self, reward, terminal, parallel=0, query=None,
@@ -153,7 +155,8 @@ class MultiAgent(Agent):
         for agent_idx, a in enumerate(self.agents):
             if not self.terminal[agent_idx]:
                 update_performed[agent_idx] = a.observe(
-                    reward[agent_idx], terminal[agent_idx], **kwargs)
+                    reward=reward[agent_idx],
+                    terminal=terminal[agent_idx], **kwargs)
 
             if terminal[agent_idx]:
                 self.terminal[agent_idx] = True

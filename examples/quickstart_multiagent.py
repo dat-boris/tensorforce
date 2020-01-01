@@ -35,11 +35,13 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 logger = tf.get_logger()
 logger.setLevel(logging.ERROR)
 
-# ENVIRONMENT = 'CartPole-v1'
-ENVIRONMENT = 'PongDuel-v0'
+# Using MA for debugging agent
+ENVIRONMENT = 'ma_CartPole-v1'
+#ENVIRONMENT = 'PongDuel-v0'
+NUMBER_OF_AGENTS = 1
 
 
-def train_agent(env, num_episodes, max_episode_timesteps=5):
+def train_agent(env, num_episodes, num_agents, max_episode_timesteps=5):
     # Create an OpenAI-Gym environment
     gym_env = gym.make(env)
     environment = Environment.create(
@@ -48,7 +50,10 @@ def train_agent(env, num_episodes, max_episode_timesteps=5):
 
     # Create a PPO agent
     agent = MultiAgent.create(
-        agents=['ppo', 'ppo'], environment=environment
+        # TODO: experiment with different agents
+        #agents=['ppo'] * num_agents,
+        agents=['random'] * num_agents,
+        environment=environment,
     )
 
     # Initialize the runner
@@ -102,25 +107,26 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Running the agent')
     parser.add_argument('--env', default=ENVIRONMENT,
                         help='Name of the environment (default: %(default)s)')
-    parser.add_argument('--episodes', type=int, default=5,
+    # From quickstart.py: 500 episodes is the deafult
+    parser.add_argument('--episodes', type=int, default=500,
                         help='episodes (default: %(default)s)')
+    parser.add_argument('--agents', type=int, default=NUMBER_OF_AGENTS,
+                        help='number of agents (default: %(default)s)')
     parser.add_argument('--pdb', action='store_true',
                         help='Trigger pdb on error')
     parser.add_argument('learn_or_run', type=str, help="(learn|run)")
     args = parser.parse_args()
 
     if args.learn_or_run == 'learn':
-        if not args.pdb:
-            train_agent(args.env, args.episodes)
-        else:
-            try:
-                train_agent(args.env, args.episodes)
-            except:  # noqa: E722
-                import pdb
-                import traceback
-                import sys
-                extype, value, tb = sys.exc_info()
-                traceback.print_exc()
+        try:
+            train_agent(args.env, args.episodes, args.agents)
+        except:  # noqa: E722
+            import pdb
+            import traceback
+            import sys
+            _, value, tb = sys.exc_info()
+            traceback.print_exc()
+            if args.pdb:
                 pdb.post_mortem(tb)
     elif args.learn_or_run == 'run':
         run_from_agent(args.env)

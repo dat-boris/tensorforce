@@ -16,6 +16,7 @@
 import os
 import datetime
 import logging
+import argparse
 
 import gym
 from gym import wrappers, logger
@@ -32,9 +33,11 @@ logger = tf.get_logger()
 logger.setLevel(logging.ERROR)
 
 
-def main():
+def train_agent(max_episode_timesteps=500, tensorboard=False):
     # Create an OpenAI-Gym environment
-    environment = Environment.create(environment='gym', level='CartPole-v1')
+    environment = Environment.create(
+        environment='gym', level='CartPole-v1',
+        max_episode_timesteps=max_episode_timesteps)
 
     # Create a PPO agent
     agent = Agent.create(
@@ -58,7 +61,16 @@ def main():
         l2_regularization=0.0, entropy_regularization=0.0,
         # TensorFlow etc
         name='agent', device=None, parallel_interactions=1, seed=None, execution=None, saver=None,
-        summarizer=None, recorder=None
+        recorder=None,
+        # Using tensorboard recording
+        # https://tensorforce.readthedocs.io/en/latest/basics/features.html#tensorboard
+        summarizer=dict(
+            directory='data/summaries',
+            # list of labels, or 'all'
+            labels=['graph', 'entropy', 'kl-divergence', 'losses', 'rewards'],
+            frequency=1  # store values every 100 timesteps
+            # (infrequent update summaries every update; other configurations possible)
+        ) if tensorboard else None,
     )
 
     # Initialize the runner
@@ -109,5 +121,15 @@ def run_from_agent():
 
 
 if __name__ == '__main__':
-    # main()
-    run_from_agent()
+    parser = argparse.ArgumentParser(description='Running the agent')
+    parser.add_argument('--tensorboard', action='store_true',
+                        help="To use tensorboard?")
+    parser.add_argument('learn_or_run', type=str, help="(learn|run)")
+    args = parser.parse_args()
+
+    if args.learn_or_run == 'learn':
+        train_agent(tensorboard=args.tensorboard)
+    elif args.learn_or_run == 'run':
+        run_from_agent()
+    else:
+        raise RuntimeError("Invalid option: {}".format(args.learn_or_run))

@@ -253,11 +253,11 @@ class EnvironmentWrapper(Environment):
         assert self.timestep < self._max_episode_timesteps
         states, terminal, reward = self.environment.execute(actions=actions)
         self.timestep += 1
-        is_terminal = (
+        not_terminal = (
             int(terminal) == 0 if not isinstance(terminal, list)
-            else min(terminal) == 0
+            else min([int(t) for t in terminal]) == 0
         )
-        if not is_terminal and self.timestep >= self._max_episode_timesteps:
+        if not_terminal and self.timestep >= self._max_episode_timesteps:
             terminal = (
                 2 if not isinstance(terminal, list)
                 else [2 for _ in terminal]

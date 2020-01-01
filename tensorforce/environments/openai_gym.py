@@ -218,21 +218,34 @@ class OpenAIGym(Environment):
             self.environment.render()
         actions = OpenAIGym.unflatten_action(action=actions)
         states, reward, terminal, _ = self.environment.step(actions)
+        terminal_summary = (
+            terminal if not isinstance(terminal, list) else all(terminal)
+        )
         self.timestep += 1
         if self.timestep == self.max_episode_steps:
-            assert terminal
-            terminal = 2
-        elif terminal:
+            assert terminal_summary
+            terminal_summary = 2
+        elif terminal_summary:
             assert self.max_episode_steps is None or self.max_episode_steps is False or \
                 self.timestep < self.max_episode_steps
-            reward += self.terminal_reward
-            terminal = 1
+            if not isinstance(reward, list):
+                reward += self.terminal_reward
+            else:
+                reward = [r + self.terminal_reward for r in reward]
+            terminal_summary = 1
         else:
-            terminal = 0
-        states = OpenAIGym.flatten_state(state=states, states_spec=self.states_spec)
-        if self.drop_states_indices is not None:
-            for index in reversed(self.drop_states_indices):
-                states = np.concatenate([states[:index], states[index + 1:]])
+            terminal_summary = 0
+
+        # Flatten states for both multiagent and normal states
+        all_states_to_flatten = states if isinstance(states, list) else [states]
+        all_flattened_states = []
+        for unflatten_state in all_states_to_flatten:
+            flatten_states = OpenAIGym.flatten_state(state=unflatten_state, states_spec=self.states_spec)
+            if self.drop_states_indices is not None:
+                for index in reversed(self.drop_states_indices):
+                    flatten_states = np.concatenate([flatten_states[:index], flatten_states[index + 1:]])
+            all_flattened_states.append(flatten_states)
+        states = all_flattened_states if isinstance(states, list) else all_flattened_states[0]
         return states, terminal, reward
 
     @staticmethod
