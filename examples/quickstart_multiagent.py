@@ -41,7 +41,8 @@ ENVIRONMENT = 'ma_CartPole-v1'
 NUMBER_OF_AGENTS = 1
 
 
-def train_agent(env, num_episodes, num_agents, max_episode_timesteps=5):
+def train_agent(env, num_episodes, num_agents, max_episode_timesteps=5,
+                tensorboard=True):
     # Create an OpenAI-Gym environment
     gym_env = gym.make(env)
     environment = Environment.create(
@@ -54,6 +55,13 @@ def train_agent(env, num_episodes, num_agents, max_episode_timesteps=5):
         #agents=['ppo'] * num_agents,
         agents=['random'] * num_agents,
         environment=environment,
+        summarizer=dict(
+            directory='data/ma_summaries',
+            # list of labels, or 'all'
+            labels=['graph', 'entropy', 'kl-divergence', 'losses', 'rewards'],
+            frequency=1  # store values every 100 timesteps
+            # (infrequent update summaries every update; other configurations possible)
+        ) if tensorboard else None,
     )
 
     # Initialize the runner
@@ -114,12 +122,15 @@ if __name__ == '__main__':
                         help='number of agents (default: %(default)s)')
     parser.add_argument('--pdb', action='store_true',
                         help='Trigger pdb on error')
+    parser.add_argument('--tensorboard', action='store_true',
+                        help="To use tensorboard?")
     parser.add_argument('learn_or_run', type=str, help="(learn|run)")
     args = parser.parse_args()
 
     if args.learn_or_run == 'learn':
         try:
-            train_agent(args.env, args.episodes, args.agents)
+            train_agent(args.env, args.episodes, args.agents,
+                        tensorboard=args.tensorboard)
         except:  # noqa: E722
             import pdb
             import traceback

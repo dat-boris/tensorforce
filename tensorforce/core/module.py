@@ -304,9 +304,6 @@ class Module(object):
                     default_summarizer = self.summarizer.as_default()
                     default_summarizer.__enter__()
 
-                    if self.summary_labels == 'all' or 'graph' in self.summary_labels:
-                        pass
-
         # TensorFlow device and scope
         Module.global_scope.append(self.name)
         if self.device is not None:

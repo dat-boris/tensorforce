@@ -561,6 +561,19 @@ class Model(Module):
             graph_default_context.__exit__(None, None, None)
         self.graph.finalize()
 
+        # Write graph to ensure that we have initial graph config
+        #
+        # Note that we choose to do this here instead of on close so we can
+        # debug the graph even if the run did not succeed
+        if self.summarizer_spec:
+            summary_labels = self.summarizer_spec.get('labels', [])
+            if summary_labels == 'all' or 'graph' in summary_labels:
+                graph_writer = tf.compat.v1.summary.FileWriter(
+                    self.summarizer_spec['directory'],
+                    self.graph
+                )
+                graph_writer.close()
+
         # enter the session to be ready for acting/learning
         self.monitored_session.__enter__()
         self.session = self.monitored_session._tf_sess()
