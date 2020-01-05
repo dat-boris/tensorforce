@@ -33,15 +33,19 @@ logger = tf.get_logger()
 logger.setLevel(logging.ERROR)
 
 
-def train_agent(max_episode_timesteps=500, tensorboard=False):
+#ENVIRONMENT = 'CartPole-v1'
+ENVIRONMENT = 'Acrobot-v1'
+
+
+def train_agent(max_episode_timesteps=500, tensorboard=False, model_dir=None):
     # Create an OpenAI-Gym environment
     environment = Environment.create(
-        environment='gym', level='CartPole-v1',
+        environment='gym', level=ENVIRONMENT,
         max_episode_timesteps=max_episode_timesteps)
 
     # Create a PPO agent
     agent = Agent.create(
-        agent='random', environment=environment,
+        agent='ppo', environment=environment,
         # Using tensorboard recording
         # https://tensorforce.readthedocs.io/en/latest/basics/features.html#tensorboard
         summarizer=dict(
@@ -61,9 +65,10 @@ def train_agent(max_episode_timesteps=500, tensorboard=False):
     # Start the runner
     runner.run(num_episodes=10)
 
+    print("Saveing to model: {}".format(model_dir))
     agent.save(
-        directory=os.path.join(os.getcwd(), 'best_cart_pole_ppo'),
-        filename='best-model',
+        directory=os.path.join(os.getcwd(), model_dir),
+        filename='best_model',
         append_timestep=False
     )
 
@@ -82,17 +87,16 @@ def run_from_agent():
         os.getcwd(), 'best_cart_pole_ppo', 'best-model.json')
     print(f"Evaluating agent: {agent_path}")
 
-    env_id = 'CartPole-v1'
     # TODO: this require unique folder
     dt_str = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
     outdir = f'/tmp/random-agent-results-{dt_str}'
     # # from gym:example/agents/ramdom_agents.py
-    # gym_env = gym.make(env_id)
+    # gym_env = gym.make(ENVIRONMENT)
     # gym_env = wrappers.Monitor(gym_env, directory=outdir, force=True)
     # environment = Environment.create(gym_env)
 
     # Create an OpenAI-Gym environment
-    environment = Environment.create(environment='gym', level=env_id,
+    environment = Environment.create(environment='gym', level=ENVIRONMENT,
                                      visualize=True, visualize_directory=outdir)
 
     # Now create the new agent
@@ -104,13 +108,14 @@ def run_from_agent():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Running the agent')
+    parser.add_argument('--modeldir', help="Save to model dir")
     parser.add_argument('--tensorboard', action='store_true',
                         help="To use tensorboard?")
     parser.add_argument('learn_or_run', type=str, help="(learn|run)")
     args = parser.parse_args()
 
     if args.learn_or_run == 'learn':
-        train_agent(tensorboard=args.tensorboard)
+        train_agent(tensorboard=args.tensorboard, model_dir=args.modeldir)
     elif args.learn_or_run == 'run':
         run_from_agent()
     else:

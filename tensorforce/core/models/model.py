@@ -1346,6 +1346,16 @@ class Model(Module):
             filename = self.saver_filename
         save_path = os.path.join(directory, filename)
 
+        # TODO: experiment with saving model to .pb
+        # XXX: This will not work monitored_session is not rhe right one
+        # print("Saving pb file to: {}".format(save_path))
+        return tf.compat.v1.saved_model.simple_save(
+            self.monitored_session,
+            save_path,
+            inputs=self.states_input,
+            outputs=self.actions_buffer
+        )
+
         return self.saver.save(
             sess=self.session, save_path=save_path,
             global_step=(self.global_timestep if append_timestep else None),
